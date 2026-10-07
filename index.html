@@ -46,6 +46,50 @@ body{background:linear-gradient(160deg,var(--g1),var(--g2));font:16px/1.4 system
 .btn{border:0;border-radius:22px;padding:13px;font:inherit;font-weight:700;cursor:pointer;width:100%;background:#fff;color:#4a35c9}
 .link{background:none;border:0;color:#fff;font:inherit;text-decoration:underline;cursor:pointer}
 #err{min-height:20px;font-size:14px;background:rgba(0,0,0,.25);border-radius:12px;padding:0 10px}
+.cbtn{display:grid;place-items:center}
+.plus,.cbtn svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.plus svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.cbtn svg{width:22px;height:22px}
+.plus{border:0;width:46px;height:46px;border-radius:50%;background:var(--bg);color:var(--g1);cursor:pointer;flex:none;display:grid;place-items:center;transition:transform .3s cubic-bezier(.4,1.5,.5,1)}
+.plus.open{transform:rotate(135deg)}
+.act{position:relative;flex:none;overflow:hidden}
+.act svg{position:absolute;inset:0;margin:auto;transition:transform .3s cubic-bezier(.5,1.6,.5,1),opacity .2s}
+.act .s{transform:scale(0) rotate(-90deg);opacity:0}
+.act.has .s{transform:none;opacity:1}
+.act.has .mi{transform:scale(0) rotate(90deg);opacity:0}
+.menu{position:absolute;left:12px;bottom:calc(68px + env(safe-area-inset-bottom,0px));background:var(--card);border-radius:20px;padding:8px;box-shadow:0 10px 30px rgba(60,40,140,.3);display:flex;flex-direction:column;gap:4px;transform-origin:bottom left;transform:scale(.3);opacity:0;pointer-events:none;transition:transform .3s cubic-bezier(.4,1.5,.5,1),opacity .2s;z-index:5}
+.menu.on{transform:none;opacity:1;pointer-events:auto}
+.menu button{display:flex;align-items:center;gap:10px;border:0;background:none;color:var(--ink);font:inherit;padding:8px 14px 8px 8px;border-radius:14px;cursor:pointer}
+.menu button:active{background:var(--bg)}
+.menu b{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:16px;background:linear-gradient(135deg,var(--g1),var(--g2))}
+.rec{display:none;align-items:center;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));background:var(--card)}
+.recording .form{display:none}
+.recording .rec{display:flex;animation:pop .3s ease}
+.rec .dot{width:12px;height:12px;border-radius:50%;background:#ff4d5e;animation:blink 1s infinite;flex:none}
+@keyframes blink{50%{opacity:.25;transform:scale(.75)}}
+.rec .t{font-weight:700;font-variant-numeric:tabular-nums;min-width:44px}
+.eq{flex:1;display:flex;align-items:center;gap:3px;height:32px;overflow:hidden}
+.eq i{flex:1;max-width:5px;height:100%;border-radius:3px;background:linear-gradient(var(--g1),var(--g2));animation:eq .9s ease-in-out infinite}
+@keyframes eq{0%,100%{transform:scaleY(.2)}50%{transform:scaleY(1)}}
+.m.img{padding:4px}
+.m.img img{display:block;max-width:100%;max-height:320px;border-radius:14px;cursor:zoom-in;background:var(--line);min-width:120px;min-height:80px}
+.m.img small{padding:2px 8px 2px}
+.vm{display:flex;align-items:center;gap:10px;min-width:210px}
+.vp{border:0;width:38px;height:38px;border-radius:50%;flex:none;cursor:pointer;background:rgba(255,255,255,.28);color:inherit;font-size:13px}
+.m.them .vp{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff}
+.wv{flex:1;display:flex;align-items:center;gap:2px;height:30px}
+.wv i{flex:1;border-radius:2px;background:currentColor;opacity:.35;transition:opacity .2s}
+.wv i.on{opacity:1}
+.vm.ing .wv i{animation:bounce .8s ease-in-out infinite}
+.vm.ing .wv i:nth-child(odd){animation-delay:-.4s}
+@keyframes bounce{50%{transform:scaleY(.55)}}
+.vd{font-size:12px;opacity:.8;font-variant-numeric:tabular-nums}
+.lb{position:absolute;inset:0;z-index:60;background:rgba(0,0,0,.92);display:grid;place-items:center;opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s}
+.lb.on{opacity:1;visibility:visible}
+.lb img{max-width:96%;max-height:90%;border-radius:12px;transform:scale(.85);transition:transform .35s cubic-bezier(.3,1.3,.5,1)}
+.lb.on img{transform:none}
+.toast{position:absolute;left:50%;bottom:90px;transform:translateX(-50%) translateY(16px);background:#25233a;color:#fff;padding:9px 16px;border-radius:16px;font-size:14px;opacity:0;transition:.3s;z-index:70;pointer-events:none;max-width:90%;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -55,6 +99,8 @@ body{background:linear-gradient(160deg,var(--g1),var(--g2));font:16px/1.4 system
   <div id="list"></div>
 
   <section class="ov" id="chat"></section>
+  <div class="lb" id="lb"><img id="lbi" alt="Фото"></div>
+  <div class="toast" id="toast"></div>
 
   <section class="ov login" id="login">
     <h1>Мессенджер</h1>
@@ -158,7 +204,7 @@ function renderList(){
   const last=p=>{ const a=msgs[p.id]; return a&&a[a.length-1]; };
   const sorted=[...peers].sort((a,b)=>{ const x=last(a),y=last(b); return (y?y.id:0)-(x?x.id:0)||a.name.localeCompare(b.name); });
   $("list").innerHTML=sorted.length?sorted.map((p,i)=>{ const l=last(p),u=unread(p);
-    return `<div class="item" style="--d:${i}" data-id="${p.id}">${ava(p)}<div class="meta"><div class="row"><span class="name">${esc(p.name)}</span><span class="time">${l?fmt(l.created_at):""}</span></div><div class="row"><span class="sub">${l?(l.sender===me.id?"Вы: ":"")+esc(l.text):"Напишите первым"}</span>${u?`<span class="badge">${u}</span>`:""}</div></div></div>`; }).join("")
+    return `<div class="item" style="--d:${i}" data-id="${p.id}">${ava(p)}<div class="meta"><div class="row"><span class="name">${esc(p.name)}</span><span class="time">${l?fmt(l.created_at):""}</span></div><div class="row"><span class="sub">${l?(l.sender===me.id?"Вы: ":"")+prev(l):"Напишите первым"}</span>${u?`<span class="badge">${u}</span>`:""}</div></div></div>`; }).join("")
     :`<div class="empty">Пока здесь никого нет.<br>Отправьте ссылку на мессенджер друзьям: как только они зарегистрируются, появятся в списке.</div>`;
 }
 $("list").onclick=e=>{ const el=e.target.closest(".item"); if(el) openChat(el.dataset.id); };
@@ -166,21 +212,117 @@ $("list").onclick=e=>{ const el=e.target.closest(".item"); if(el) openChat(el.da
 // ----- чат -----
 function openChat(id){
   const p=peers.find(x=>x.id===id); if(!p) return; cur=id; setLR(id);
-  $("chat").innerHTML=`<div class="chead"><button class="ib" id="back" aria-label="Назад">←</button>${ava(p,"width:40px;height:40px;font-size:16px")}<strong>${esc(p.name)}</strong></div><div class="msgs" id="msgs"></div><div class="form"><input id="inp" placeholder="Сообщение" autocomplete="off"><button class="cbtn" id="send" aria-label="Отправить">➤</button></div>`;
+  $("chat").innerHTML=`<div class="chead"><button class="ib" id="back" aria-label="Назад">←</button>${ava(p,"width:40px;height:40px;font-size:16px")}<strong>${esc(p.name)}</strong></div><div class="msgs" id="msgs"></div><div class="form"><button class="plus" id="plus" aria-label="Прикрепить"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button><input id="inp" placeholder="Сообщение" autocomplete="off"><button class="cbtn act" id="act" aria-label="Записать или отправить"><svg class="mi" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><svg class="s" viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2-6z"/></svg></button></div>
+  <div class="rec"><button class="cbtn" id="rx" style="background:var(--bg);color:#ff4d5e" aria-label="Отмена"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button><span class="dot"></span><span class="t" id="rt">0:00</span><div class="eq">${Array.from({length:26},(_,i)=>`<i style="animation-delay:-${(i*0.07).toFixed(2)}s"></i>`).join("")}</div><button class="cbtn" id="rs" aria-label="Отправить"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2-6z"/></svg></button></div>
+  <div class="menu" id="menu"><button id="m1"><b>🖼</b>Фото из галереи</button><button id="m2"><b>📷</b>Снять фото</button></div>
+  <input type="file" accept="image/*" id="f1" hidden><input type="file" accept="image/*" capture="environment" id="f2" hidden>`;
   $("chat").classList.add("on"); renderMsgs();
-  $("back").onclick=()=>{ cur=null; $("chat").classList.remove("on"); renderList(); };
-  $("send").onclick=send; $("inp").onkeydown=e=>{ if(e.key==="Enter") send(); };
+  $("back").onclick=()=>{ stopRec(true); closeMenu(); if(au){ au.pause(); au=null; auId=null; } cur=null; $("chat").classList.remove("on"); renderList(); };
+  $("inp").onkeydown=e=>{ if(e.key==="Enter") send(); };
+  $("inp").oninput=()=>$("act").classList.toggle("has",!!$("inp").value.trim());
+  $("act").onclick=()=>{ closeMenu(); $("inp").value.trim()?send():startRec(); };
+  $("rs").onclick=()=>stopRec(false); $("rx").onclick=()=>stopRec(true);
+  $("plus").onclick=()=>{ const o=$("menu").classList.toggle("on"); $("plus").classList.toggle("open",o); };
+  $("m1").onclick=()=>{ closeMenu(); $("f1").click(); }; $("m2").onclick=()=>{ closeMenu(); $("f2").click(); };
+  $("f1").onchange=$("f2").onchange=e=>{ const f=e.target.files[0]; e.target.value=""; sendImage(f); };
+  $("msgs").onclick=e=>{ closeMenu(); const v=e.target.closest(".vp"); if(v) return playVoice(v.closest(".vm")); const im=e.target.closest("img[data-full]"); if(im){ $("lbi").src=im.dataset.full; $("lb").classList.add("on"); } };
 }
 function renderMsgs(){
   const b=$("msgs"); if(!b||!cur) return; const a=msgs[cur]||[];
-  b.innerHTML=a.length?a.map(m=>`<div class="m ${m.sender===me.id?"me":"them"}">${esc(m.text)}<small>${fmt(m.created_at)}</small></div>`).join(""):`<div class="empty">Сообщений пока нет. Напишите первым!</div>`;
-  b.scrollTop=b.scrollHeight;
+  b.innerHTML=a.length?a.map(bubble).join(""):`<div class="empty">Сообщений пока нет. Напишите первым!</div>`;
+  b.scrollTop=b.scrollHeight; mark();
+}
+const dur=s=>Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+const prev=m=>m.kind==="image"?"📷 Фото":m.kind==="voice"?"🎤 Голосовое":esc(m.text);
+function toast(t){ const e=$("toast"); e.textContent=t; e.classList.add("on"); clearTimeout(toast.t); toast.t=setTimeout(()=>e.classList.remove("on"),3000); }
+function closeMenu(){ const m=$("menu"); if(m) m.classList.remove("on"); const p=$("plus"); if(p) p.classList.remove("open"); }
+$("lb").onclick=()=>$("lb").classList.remove("on");
+
+function bubble(m){
+  const c=m.sender===me.id?"me":"them", t=`<small>${fmt(m.created_at)}</small>`;
+  if(m.kind==="image") return `<div class="m img ${c}"><img src="${esc(m.url)}" data-full="${esc(m.url)}" alt="Фото" onload="var b=document.getElementById('msgs');b.scrollTop=b.scrollHeight">${t}</div>`;
+  if(m.kind==="voice"){ const d=+m.text||1, w=Array.from({length:22},(_,i)=>`<i style="height:${30+((m.id*7+i*13)%70)}%"></i>`).join("");
+    return `<div class="m ${c}"><div class="vm" data-id="${m.id}" data-url="${esc(m.url)}" data-d="${d}"><button class="vp" aria-label="Воспроизвести">▶</button><div class="wv">${w}</div><span class="vd">${dur(d)}</span></div>${t}</div>`; }
+  return `<div class="m ${c}">${esc(m.text)}${t}</div>`;
+}
+
+// ----- голосовые: воспроизведение -----
+let au=null, auId=null;
+function playVoice(box){
+  const id=box.dataset.id;
+  if(au&&auId===id){ if(au.paused) au.play(); else au.pause(); return; }
+  if(au) au.pause();
+  au=new Audio(box.dataset.url); auId=id;
+  au.onplay=mark; au.onpause=mark; au.ontimeupdate=prog;
+  au.onended=()=>{ au=null; auId=null; mark(); };
+  au.play().catch(()=>toast("Не удалось воспроизвести"));
+}
+function mark(){
+  document.querySelectorAll(".vm").forEach(b=>{
+    const isCur=au&&auId===b.dataset.id, play=isCur&&!au.paused;
+    b.classList.toggle("ing",!!play); b.querySelector(".vp").textContent=play?"❚❚":"▶";
+    if(!isCur) b.querySelectorAll("i").forEach(i=>i.classList.remove("on"));
+  });
+  prog();
+}
+function prog(){
+  if(!au) return; const b=document.querySelector(`.vm[data-id="${auId}"]`); if(!b) return;
+  const d=isFinite(au.duration)&&au.duration>0?au.duration:+b.dataset.d, is=b.querySelectorAll(".wv i"), n=Math.round(au.currentTime/d*is.length);
+  is.forEach((x,k)=>x.classList.toggle("on",k<n));
+}
+
+// ----- отправка -----
+async function sendRow(to,row){
+  const {data,error}=await sb.from("messages").insert({receiver:to,...row}).select().single();
+  if(error) throw error; addMsg(data);
+}
+async function upload(blob,ext,type){
+  const path=`${me.id}/${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+  const {error}=await sb.storage.from("media").upload(path,blob,{contentType:type});
+  if(error) throw error;
+  return sb.storage.from("media").getPublicUrl(path).data.publicUrl;
 }
 async function send(){
-  const inp=$("inp"), text=inp.value.trim(); if(!text||!cur) return; inp.value=""; inp.focus();
-  const {data,error}=await sb.from("messages").insert({receiver:cur,text}).select().single();
-  if(error){ inp.value=text; alert("Не удалось отправить: "+error.message); return; }
-  addMsg(data);
+  const inp=$("inp"), text=inp.value.trim(); if(!text||!cur) return;
+  inp.value=""; $("act").classList.remove("has"); inp.focus();
+  try{ await sendRow(cur,{text}); }
+  catch(e){ inp.value=text; $("act").classList.add("has"); alert("Не удалось отправить: "+e.message); }
+}
+function shrink(file){ return new Promise((res,rej)=>{
+  const img=new Image(), u=URL.createObjectURL(file);
+  img.onload=()=>{ const k=Math.min(1,1280/Math.max(img.width,img.height)), c=document.createElement("canvas");
+    c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext("2d").drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(u);
+    c.toBlob(b=>b?res(b):rej(new Error("Не удалось обработать фото")),"image/jpeg",.82); };
+  img.onerror=()=>rej(new Error("Это не изображение")); img.src=u; }); }
+async function sendImage(file){
+  if(!file||!cur) return; const to=cur; toast("Отправка фото…");
+  try{ const url=await upload(await shrink(file),"jpg","image/jpeg"); await sendRow(to,{kind:"image",text:"",url}); $("toast").classList.remove("on"); }
+  catch(e){ toast("Не удалось отправить: "+(e.message||e)); }
+}
+
+// ----- запись голоса -----
+let rec=null, chunks=[], rtm=null, rst=0, recTo=null;
+async function startRec(){
+  if(!navigator.mediaDevices||!window.MediaRecorder){ toast("Запись не поддерживается в этом браузере"); return; }
+  try{
+    const st=await navigator.mediaDevices.getUserMedia({audio:true});
+    const mt=["audio/webm;codecs=opus","audio/webm","audio/mp4"].find(t=>MediaRecorder.isTypeSupported(t))||"";
+    rec=new MediaRecorder(st,mt?{mimeType:mt}:{}); chunks=[]; recTo=cur;
+    rec.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
+    rec.start(); rst=Date.now(); $("rt").textContent="0:00"; $("chat").classList.add("recording");
+    rtm=setInterval(()=>{ $("rt").textContent=dur(Math.floor((Date.now()-rst)/1000)); },250);
+  }catch(e){ toast("Разрешите доступ к микрофону в настройках браузера"); }
+}
+function stopRec(cancel){
+  if(!rec) return; clearInterval(rtm); const r=rec, to=recTo, sec=Math.max(1,Math.round((Date.now()-rst)/1000)); rec=null;
+  $("chat").classList.remove("recording");
+  r.onstop=async()=>{
+    r.stream.getTracks().forEach(t=>t.stop()); if(cancel) return;
+    const type=(r.mimeType||"audio/webm").split(";")[0], blob=new Blob(chunks,{type}); if(blob.size<500) return;
+    try{ toast("Отправка…"); const url=await upload(blob,type.includes("mp4")?"m4a":"webm",type); await sendRow(to,{kind:"voice",text:String(sec),url}); $("toast").classList.remove("on"); }
+    catch(e){ toast("Не удалось отправить: "+(e.message||e)); }
+  };
+  if(r.state!=="inactive") r.stop(); else r.onstop();
 }
 
 // ----- старт страницы -----
