@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Мессенджер</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{--g1:#7b5cff;--g2:#18c6d9;--bg:#f3f1fb;--card:#fff;--ink:#1b1a2e;--muted:#7c7a95;--line:#e6e3f3;--theirs:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#12111f;--card:#1c1a2e;--ink:#eeedf9;--muted:#9a98b5;--line:#2c2a44;--theirs:#262440}}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:linear-gradient(160deg,var(--g1),var(--g2));font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);overflow:hidden}
+.app{position:relative;height:100%;max-width:520px;margin:0 auto;background:var(--bg);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,.25)}
+.hd{padding:calc(16px + env(safe-area-inset-top,0px)) 20px 20px;color:#fff;background:linear-gradient(135deg,var(--g1),var(--g2));border-radius:0 0 28px 28px;display:flex;justify-content:space-between;align-items:center}
+.hd h1{font-size:26px;font-weight:800}.hd p{font-size:13px;opacity:.85}
+@keyframes pop{from{opacity:0;transform:scale(.88) translateY(8px)}to{opacity:1;transform:none}}
+@keyframes dot{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-5px);opacity:1}}
+#list{flex:1;overflow-y:auto;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px))}
+.item{display:flex;gap:12px;align-items:center;background:var(--card);padding:12px;border-radius:18px;margin-bottom:10px;cursor:pointer;box-shadow:0 2px 10px rgba(80,60,160,.07);transition:transform .15s;animation:pop .4s ease both;animation-delay:calc(var(--d,0)*50ms)}
+.item:active{transform:scale(.97)}
+.ava{width:48px;height:48px;border-radius:50%;flex:none;display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px}
+.meta{flex:1;min-width:0}.row{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.time{font-size:12px;color:var(--muted)}
+.badge{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;border-radius:11px;font-size:12px;padding:1px 8px;font-weight:700}
+.empty{text-align:center;color:var(--muted);padding:40px 20px}
+.ov{position:absolute;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .38s cubic-bezier(.3,.9,.3,1);visibility:hidden}
+.ov.on{transform:none;visibility:visible}
+.chead{display:flex;align-items:center;gap:12px;padding:calc(12px + env(safe-area-inset-top,0px)) 14px 12px;color:#fff;background:linear-gradient(135deg,var(--g1),var(--g2))}
+.ib{border:0;background:rgba(255,255,255,.22);color:#fff;border-radius:50%;width:38px;height:38px;font-size:18px;cursor:pointer}
+.msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:6px}
+.m{max-width:78%;padding:9px 13px;border-radius:18px;white-space:pre-wrap;word-wrap:break-word;animation:pop .3s ease both}
+.m small{display:block;font-size:11px;opacity:.7;text-align:right}
+.m.me{align-self:flex-end;color:#fff;background:linear-gradient(135deg,var(--g1),var(--g2));border-bottom-right-radius:5px}
+.m.them{align-self:flex-start;background:var(--theirs);border-bottom-left-radius:5px;box-shadow:0 1px 6px rgba(80,60,160,.08)}
+.form{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));background:var(--card)}
+.form input,.login input{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:22px;padding:12px 16px;font:inherit;min-width:0}
+.form input{flex:1}.form input:focus,.login input:focus{outline:2px solid var(--g1)}
+.cbtn{border:0;width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;font-size:18px;cursor:pointer}
+.login{z-index:50;transform:none;visibility:visible;justify-content:center;padding:30px;gap:12px;background:linear-gradient(160deg,var(--g1),var(--g2));color:#fff}
+.login.off{display:none}
+.login h1{font-size:34px;font-weight:800;margin-bottom:6px}
+.login input{width:100%;border:0;color:#1b1a2e;background:#fff}
+.btn{border:0;border-radius:22px;padding:13px;font:inherit;font-weight:700;cursor:pointer;width:100%;background:#fff;color:#4a35c9}
+.link{background:none;border:0;color:#fff;font:inherit;text-decoration:underline;cursor:pointer}
+#err{min-height:20px;font-size:14px;background:rgba(0,0,0,.25);border-radius:12px;padding:0 10px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hd"><div><h1>Чаты</h1><p id="who"></p></div><button class="ib" id="out" title="Выйти" aria-label="Выйти">⎋</button></div>
+  <div id="list"></div>
+
+  <section class="ov" id="chat"></section>
+
+  <section class="ov login" id="login">
+    <h1>Мессенджер</h1>
+    <p id="mode">Войдите, чтобы писать друзьям</p>
+    <input id="nm" placeholder="Ваше имя" autocomplete="name" style="display:none">
+    <input id="em" type="email" placeholder="Почта" autocomplete="email">
+    <input id="pw" type="password" placeholder="Пароль (от 6 символов)" autocomplete="current-password">
+    <div id="err"></div>
+    <button class="btn" id="go">Войти</button>
+    <button class="link" id="sw">Нет аккаунта? Зарегистрироваться</button>
+  </section>
+</div>
+
+<script>
+// ===== НАСТРОЙКИ ПОДКЛЮЧЕНИЯ =====
+const SUPABASE_URL = "https://wextpuacyedexnqqypkq.supabase.co";
+const SUPABASE_KEY = "sb_publishable_yAUuiKkw6YuCqB-I5P1WrQ_W5u3WO8N";
+// =================================
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const AV = [["#7b5cff","#c04bff"],["#ff6a88","#ffb347"],["#18c6d9","#2f80ed"],["#1fa971","#a3e635"],["#f857a6","#ff5858"]];
+const ava = (p,x="") => { const k=[...p.id].reduce((a,c)=>a+c.charCodeAt(0),0)%5; return `<div class="ava" style="background:linear-gradient(135deg,${AV[k][0]},${AV[k][1]});${x}">${esc(p.name[0].toUpperCase())}</div>`; };
+const fmt = ts => { const d=new Date(ts),n=new Date(); return d.toDateString()===n.toDateString()?d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}):d.toLocaleDateString("ru-RU",{day:"numeric",month:"short"}); };
+
+let me=null, myName="", peers=[], msgs={}, cur=null, maxId=0, register=false, started=false;
+const getLR = id => { try{ return +localStorage.getItem("lr:"+id)||0; }catch(e){ return 0; } };
+const setLR = id => { try{ localStorage.setItem("lr:"+id, Date.now()); }catch(e){} };
+
+// ----- вход / регистрация -----
+function setMode(r){
+  register=r; $("nm").style.display=r?"block":"none"; $("go").textContent=r?"Создать аккаунт":"Войти";
+  $("sw").textContent=r?"Уже есть аккаунт? Войти":"Нет аккаунта? Зарегистрироваться";
+  $("mode").textContent=r?"Создайте аккаунт за минуту":"Войдите, чтобы писать друзьям"; $("err").textContent="";
+}
+function errText(m){
+  if(/Invalid login/i.test(m)) return "Неверная почта или пароль";
+  if(/already registered/i.test(m)) return "Эта почта уже зарегистрирована. Нажмите «Войти»";
+  if(/at least 6/i.test(m)) return "Пароль должен быть не короче 6 символов";
+  if(/valid email|invalid format/i.test(m)) return "Проверьте адрес почты";
+  if(/rate limit/i.test(m)) return "Слишком много попыток, подождите минуту";
+  return m;
+}
+$("sw").onclick=()=>setMode(!register);
+$("go").onclick=async()=>{
+  const email=$("em").value.trim(), password=$("pw").value, name=$("nm").value.trim();
+  if(!email||!password||(register&&!name)){ $("err").textContent="Заполните все поля"; return; }
+  $("go").disabled=true; $("err").textContent="";
+  try{
+    if(register){
+      const {data,error}=await sb.auth.signUp({email,password,options:{data:{name}}});
+      if(error) throw error;
+      if(!data.session){ $("err").textContent="Подтвердите почту по письму, затем войдите"; setMode(false); }
+      else await start(data.user);
+    }else{
+      const {data,error}=await sb.auth.signInWithPassword({email,password});
+      if(error) throw error;
+      await start(data.user);
+    }
+  }catch(e){ $("err").textContent=errText(e.message||String(e)); }
+  $("go").disabled=false;
+};
+$("out").onclick=async()=>{ await sb.auth.signOut(); location.reload(); };
+
+// ----- запуск -----
+async function start(user){
+  if(started) return; started=true; me=user;
+  let {data:p}=await sb.from("profiles").select("*").eq("id",me.id).maybeSingle();
+  if(!p){ const name=(me.user_metadata&&me.user_metadata.name)||me.email.split("@")[0]; const r=await sb.from("profiles").insert({id:me.id,name}).select().single(); p=r.data; }
+  myName=p?p.name:"Я"; $("who").textContent="Вы: "+myName;
+  await loadPeers(); await loadMsgs();
+  sb.channel("m").on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},x=>addMsg(x.new)).subscribe();
+  setInterval(()=>{ loadPeers(); pollNew(); },4000);
+  $("login").classList.add("off"); renderList();
+}
+async function loadPeers(){
+  const {data}=await sb.from("profiles").select("*").neq("id",me.id);
+  if(data){ const n=data.length; peers=data; if(!cur) renderList(); }
+}
+async function loadMsgs(){
+  const {data}=await sb.from("messages").select("*").order("id");
+  (data||[]).forEach(m=>addMsg(m,true));
+}
+async function pollNew(){
+  const {data}=await sb.from("messages").select("*").gt("id",maxId).order("id");
+  (data||[]).forEach(m=>addMsg(m));
+}
+function addMsg(m,quiet){
+  const peer=m.sender===me.id?m.receiver:m.sender;
+  const arr=msgs[peer]=msgs[peer]||[];
+  if(arr.some(x=>x.id===m.id)) return;
+  arr.push(m); arr.sort((a,b)=>a.id-b.id); if(m.id>maxId) maxId=m.id;
+  if(cur===peer){ setLR(peer); renderMsgs(); }
+  if(!quiet) renderList();
+}
+
+// ----- список -----
+function renderList(){
+  const unread=p=>(msgs[p.id]||[]).filter(m=>m.sender===p.id&&new Date(m.created_at)>getLR(p.id)).length;
+  const last=p=>{ const a=msgs[p.id]; return a&&a[a.length-1]; };
+  const sorted=[...peers].sort((a,b)=>{ const x=last(a),y=last(b); return (y?y.id:0)-(x?x.id:0)||a.name.localeCompare(b.name); });
+  $("list").innerHTML=sorted.length?sorted.map((p,i)=>{ const l=last(p),u=unread(p);
+    return `<div class="item" style="--d:${i}" data-id="${p.id}">${ava(p)}<div class="meta"><div class="row"><span class="name">${esc(p.name)}</span><span class="time">${l?fmt(l.created_at):""}</span></div><div class="row"><span class="sub">${l?(l.sender===me.id?"Вы: ":"")+esc(l.text):"Напишите первым"}</span>${u?`<span class="badge">${u}</span>`:""}</div></div></div>`; }).join("")
+    :`<div class="empty">Пока здесь никого нет.<br>Отправьте ссылку на мессенджер друзьям: как только они зарегистрируются, появятся в списке.</div>`;
+}
+$("list").onclick=e=>{ const el=e.target.closest(".item"); if(el) openChat(el.dataset.id); };
+
+// ----- чат -----
+function openChat(id){
+  const p=peers.find(x=>x.id===id); if(!p) return; cur=id; setLR(id);
+  $("chat").innerHTML=`<div class="chead"><button class="ib" id="back" aria-label="Назад">←</button>${ava(p,"width:40px;height:40px;font-size:16px")}<strong>${esc(p.name)}</strong></div><div class="msgs" id="msgs"></div><div class="form"><input id="inp" placeholder="Сообщение" autocomplete="off"><button class="cbtn" id="send" aria-label="Отправить">➤</button></div>`;
+  $("chat").classList.add("on"); renderMsgs();
+  $("back").onclick=()=>{ cur=null; $("chat").classList.remove("on"); renderList(); };
+  $("send").onclick=send; $("inp").onkeydown=e=>{ if(e.key==="Enter") send(); };
+}
+function renderMsgs(){
+  const b=$("msgs"); if(!b||!cur) return; const a=msgs[cur]||[];
+  b.innerHTML=a.length?a.map(m=>`<div class="m ${m.sender===me.id?"me":"them"}">${esc(m.text)}<small>${fmt(m.created_at)}</small></div>`).join(""):`<div class="empty">Сообщений пока нет. Напишите первым!</div>`;
+  b.scrollTop=b.scrollHeight;
+}
+async function send(){
+  const inp=$("inp"), text=inp.value.trim(); if(!text||!cur) return; inp.value=""; inp.focus();
+  const {data,error}=await sb.from("messages").insert({receiver:cur,text}).select().single();
+  if(error){ inp.value=text; alert("Не удалось отправить: "+error.message); return; }
+  addMsg(data);
+}
+
+// ----- старт страницы -----
+(async()=>{
+  const {data:{session}}=await sb.auth.getSession();
+  if(session) await start(session.user);
+})();
+</script>
+</body>
+</html>
