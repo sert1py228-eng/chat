@@ -123,10 +123,56 @@ body,.app,.item,.form,.rec,.chead,.m.them,#q{transition:background-color .4s,col
 #myava .ava{width:48px;height:48px;border:2px solid rgba(255,255,255,.75);animation:pop .5s ease}
 .menu button.red{color:#ff4d5e;font-weight:700}
 .menu button.red b{background:linear-gradient(135deg,#ff5f6d,#ff4d5e)}
+
+:root{--g1:#8b5cff;--g2:#22d3ee}
+:root[data-theme="dark"]{--bg:rgba(9,8,28,.55);--card:rgba(30,26,70,.6);--ink:#ecebff;--muted:#9d9bd0;--line:rgba(150,130,255,.25);--theirs:rgba(42,36,92,.85);--ov:#0b0a22}
+:root[data-theme="light"]{--ov:#f3f1fb}
+body{background:#05031a}
+.sky{position:fixed;inset:0;overflow:hidden;z-index:0;background:radial-gradient(ellipse at 15% 8%,#2b1470 0,transparent 55%),radial-gradient(ellipse at 90% 90%,#0a3a5e 0,transparent 55%),#05031a}
+.sky b{position:absolute;width:60vmax;height:60vmax;border-radius:50%;filter:blur(80px);opacity:.38;animation:drift 22s ease-in-out infinite alternate}
+.n1{background:#7a38ff;left:-22vmax;top:-22vmax}
+.n2{background:#0fb3d6;right:-26vmax;bottom:-26vmax;animation-delay:-9s}
+@keyframes drift{to{transform:translate(9vmax,7vmax) scale(1.2)}}
+.sky u{position:absolute;border-radius:50%;background:#fff;animation:tw 4s ease-in-out infinite}
+@keyframes tw{0%,100%{opacity:.12}50%{opacity:1;box-shadow:0 0 7px #fff}}
+.sky em{position:absolute;width:130px;height:2px;background:linear-gradient(90deg,#fff,transparent);opacity:0;animation:shoot 15s linear infinite}
+@keyframes shoot{0%{opacity:0;transform:translate(0,0) rotate(-35deg)}2%{opacity:1}9%{opacity:0;transform:translate(-460px,320px) rotate(-35deg)}100%{opacity:0}}
+.app{z-index:1;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 0 90px rgba(139,92,255,.4)}
+.ov{background:var(--ov)}
+.hd{background:linear-gradient(135deg,#5b2cff,#9b3cff 55%,#18b9e6);box-shadow:0 8px 32px rgba(124,77,255,.5)}
+.item{border:1px solid var(--line)}
+.form,.rec{backdrop-filter:blur(12px)}
+.m.me{box-shadow:0 0 16px rgba(124,77,255,.5)}
+.ov.login{background:radial-gradient(ellipse at 50% 20%,rgba(120,70,255,.35),transparent 65%),rgba(5,3,26,.35);align-items:center;text-align:center}
+.login>*{width:100%;max-width:340px;animation:rise .8s cubic-bezier(.2,.9,.3,1) both}
+.login>:nth-child(2){animation-delay:.1s}.login>:nth-child(3){animation-delay:.2s}.login>:nth-child(4){animation-delay:.3s}.login>:nth-child(5){animation-delay:.4s}.login>:nth-child(6){animation-delay:.5s}.login>:nth-child(7){animation-delay:.6s}.login>:nth-child(8){animation-delay:.7s}
+@keyframes rise{from{opacity:0;transform:translateY(28px) scale(.96)}to{opacity:1;transform:none}}
+.login h1{background:linear-gradient(90deg,#fff,#b9a6ff,#7be8ff);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none}
+.login input{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(160,140,255,.45);backdrop-filter:blur(6px);transition:box-shadow .3s,border-color .3s}
+.login input::placeholder{color:rgba(255,255,255,.55)}
+.login input:focus{outline:none;border-color:#7be8ff;box-shadow:0 0 18px rgba(34,211,238,.55)}
+.login .btn{background:linear-gradient(135deg,#8b5cff,#22d3ee);color:#fff;animation:rise .8s .5s both,glow 2.4s 1.4s ease-in-out infinite;transition:transform .2s}
+.login .btn:active{transform:scale(.96)}
+@keyframes glow{0%,100%{box-shadow:0 0 14px rgba(139,92,255,.5)}50%{box-shadow:0 0 30px rgba(34,211,238,.8)}}
+#nm{animation:rise .45s ease both}
+.planet{position:relative;width:96px!important;height:96px;border-radius:50%;margin:0 auto 6px;background:radial-gradient(circle at 32% 30%,#c9b6ff,#7a4dff 45%,#1c0f5c 80%);box-shadow:0 0 40px rgba(139,92,255,.7),inset -12px -10px 24px rgba(0,0,0,.5);animation:rise .8s both,float 5s ease-in-out infinite!important}
+.planet:after{content:"";position:absolute;left:-26px;right:-26px;top:38px;height:24px;border:3px solid rgba(123,232,255,.7);border-radius:50%;transform:rotate(-18deg);box-shadow:0 0 12px rgba(34,211,238,.6)}
+@keyframes float{50%{transform:translateY(-12px)}}
+.fm{padding:6px}
+.fb{display:flex;align-items:center;gap:10px;min-width:230px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.14);color:inherit;text-decoration:none;border:1px solid rgba(255,255,255,.25);transition:transform .2s}
+.m.them .fb{background:rgba(124,77,255,.15);border-color:var(--line)}
+.fb:active{transform:scale(.97)}
+.fi{flex:none;width:44px;height:50px;border-radius:8px;background:linear-gradient(160deg,#8b5cff,#22d3ee);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;box-shadow:0 0 12px rgba(139,92,255,.5)}
+.fn{flex:1;min-width:0;display:flex;flex-direction:column}
+.fn b{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fn em{font-style:normal;font-size:12px;opacity:.75}
+.fd{flex:none;font-size:18px;animation:bob 1.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(3px)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
+<div class="sky"><b class="n1"></b><b class="n2"></b></div>
 <div class="app">
   <div class="hd"><div><h1>Чаты</h1><button class="tg" id="tg" aria-label="Сменить тему"><span class="sun">☀️</span><span class="moon">🌙</span><i></i></button></div><div class="pf" id="pf" title="Профиль"><div id="myava"></div><span id="who"></span></div></div>
   <input id="q" placeholder="Поиск людей">
@@ -138,7 +184,7 @@ body,.app,.item,.form,.rec,.chead,.m.them,#q{transition:background-color .4s,col
   <div class="toast" id="toast"></div>
 
   <section class="ov login" id="login">
-    <h1>Мессенджер</h1>
+    <div class="planet"></div><h1>Мессенджер</h1>
     <p id="mode">Войдите, чтобы писать друзьям</p>
     <input id="nm" placeholder="Ваше имя" autocomplete="name" style="display:none">
     <input id="em" type="email" placeholder="Почта" autocomplete="email">
@@ -305,6 +351,9 @@ function openSheet(id){
 $("sh").onclick=()=>$("sh").classList.remove("on");
 $("q").oninput=renderList;
 let myAv=null;
+(function(){ const sk=document.querySelector(".sky");
+  for(let i=0;i<90;i++){ const e=document.createElement("u"), z=Math.random()*2+1; e.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;width:${z}px;height:${z}px;animation-delay:-${Math.random()*6}s;animation-duration:${3+Math.random()*4}s`; sk.appendChild(e); }
+  for(let i=0;i<3;i++){ const m=document.createElement("em"); m.style.cssText=`top:${Math.random()*40}%;left:${50+Math.random()*50}%;animation-delay:${i*5+Math.random()*4}s`; sk.appendChild(m); } })();
 function paintMe(){ $("who").textContent=myName; $("myava").innerHTML=ava({id:me.id,name:myName||"?",avatar_url:myAv}); }
 function confirmOut(){
   const s=$("shm");
@@ -312,7 +361,7 @@ function confirmOut(){
   s.onclick=async e=>{ const k=e.target.closest("button"); if(k&&k.dataset.x==="y"){ e.stopPropagation(); await sb.auth.signOut(); location.reload(); } };
 }
 function setTheme(d,save){ document.documentElement.dataset.theme=d?"dark":"light"; $("tg").classList.toggle("dark",d); if(save){ try{ localStorage.setItem("theme",d?"dark":"light"); }catch(e){} } }
-{ let th=null; try{ th=localStorage.getItem("theme"); }catch(e){} setTheme(th?th==="dark":matchMedia("(prefers-color-scheme:dark)").matches); }
+{ let th=null; try{ th=localStorage.getItem("theme"); }catch(e){} setTheme(th?th==="dark":true); }
 $("tg").onclick=()=>setTheme(document.documentElement.dataset.theme!=="dark",true);
 let rmap={}, rsig="";
 async function loadReact(){
@@ -368,7 +417,8 @@ function bubble0(m){
   const c=m.sender===me.id?"me":"them", t=`<small>${fmt(m.created_at)}</small>`;
   if(m.kind==="image") return `<div class="m img ${c}"><img src="${esc(m.url)}" data-full="${esc(m.url)}" alt="Фото" onload="var b=document.getElementById('msgs');b.scrollTop=b.scrollHeight">${t}</div>`;
   if(m.kind==="video") return `<div class="m img ${c}"><video src="${esc(m.url)}" controls playsinline preload="metadata" style="display:block;max-width:100%;max-height:320px;border-radius:14px;min-width:200px"></video>${t}</div>`;
-  if(m.kind==="file") return `<div class="m ${c}"><a href="${esc(m.url)}" target="_blank" rel="noopener" style="color:inherit">📎 ${esc(m.text)}</a>${t}</div>`;
+  if(m.kind==="file"){ const n=m.text||"файл", ext=n.includes(".")?n.split(".").pop().slice(0,4).toUpperCase():"FILE";
+    return `<div class="m fm ${c}"><a class="fb" href="${esc(m.url)}" target="_blank" rel="noopener" download="${esc(n)}"><span class="fi">${esc(ext)}</span><span class="fn"><b>${esc(n)}</b><em>Нажмите, чтобы скачать</em></span><span class="fd">⬇</span></a>${t}</div>`; }
   if(m.kind==="voice"){ const d=+m.text||1, w=Array.from({length:22},(_,i)=>`<i style="height:${30+((m.id*7+i*13)%70)}%"></i>`).join("");
     return `<div class="m ${c}"><div class="vm" data-id="${m.id}" data-url="${esc(m.url)}" data-d="${d}"><button class="vp" aria-label="Воспроизвести">▶</button><div class="wv">${w}</div><span class="vd">${dur(d)}</span></div>${t}</div>`; }
   return `<div class="m ${c}">${esc(m.text)}${t}</div>`;
