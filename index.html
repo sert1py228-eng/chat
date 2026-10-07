@@ -106,12 +106,29 @@ body{background:linear-gradient(160deg,var(--g1),var(--g2));font:16px/1.4 system
 .er button{font-size:22px!important;padding:6px 8px!important}
 .rx{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}
 .rx span{background:rgba(127,127,127,.28);border-radius:10px;padding:0 7px;font-size:13px}
+:root[data-theme="light"]{--bg:#f3f1fb;--card:#fff;--ink:#1b1a2e;--muted:#7c7a95;--line:#e6e3f3;--theirs:#fff}
+:root[data-theme="dark"]{--bg:#12111f;--card:#1c1a2e;--ink:#eeedf9;--muted:#9a98b5;--line:#2c2a44;--theirs:#262440}
+body,.app,.item,.form,.rec,.chead,.m.them,#q{transition:background-color .4s,color .4s,border-color .4s}
+.tg{position:relative;width:70px;height:34px;border:0;border-radius:17px;background:rgba(255,255,255,.25);cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:0 9px;font-size:15px;margin-top:8px}
+.tg i{position:absolute;top:3px;left:3px;width:28px;height:28px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25);transition:transform .45s cubic-bezier(.5,1.6,.5,1)}
+.tg.dark i{transform:translateX(36px)}
+.tg span{position:relative;z-index:1;transition:transform .5s cubic-bezier(.5,1.6,.5,1),opacity .3s}
+.tg:not(.dark) .sun{transform:rotate(90deg) scale(1.15)}
+.tg:not(.dark) .moon{opacity:.6}
+.tg.dark .moon{transform:rotate(-25deg) scale(1.15)}
+.tg.dark .sun{opacity:.6}
+.pf{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;max-width:110px;transition:transform .2s}
+.pf:active{transform:scale(.92)}
+.pf span{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+#myava .ava{width:48px;height:48px;border:2px solid rgba(255,255,255,.75);animation:pop .5s ease}
+.menu button.red{color:#ff4d5e;font-weight:700}
+.menu button.red b{background:linear-gradient(135deg,#ff5f6d,#ff4d5e)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="hd"><div><h1>Чаты</h1><p id="who"></p></div><button class="ib" id="out" title="Выйти" aria-label="Выйти">⎋</button></div>
+  <div class="hd"><div><h1>Чаты</h1><button class="tg" id="tg" aria-label="Сменить тему"><span class="sun">☀️</span><span class="moon">🌙</span><i></i></button></div><div class="pf" id="pf" title="Профиль"><div id="myava"></div><span id="who"></span></div></div>
   <input id="q" placeholder="Поиск людей">
   <div id="list"></div>
 
@@ -182,19 +199,19 @@ $("go").onclick=async()=>{
   }catch(e){ $("err").textContent=errText(e.message||String(e)); }
   $("go").disabled=false;
 };
-$("out").onclick=async()=>{ await sb.auth.signOut(); location.reload(); };
+
 
 // ----- запуск -----
 async function start(user){
   if(started) return; started=true; me=user;
   let {data:p}=await sb.from("profiles").select("*").eq("id",me.id).maybeSingle();
   if(!p){ const name=(me.user_metadata&&me.user_metadata.name)||me.email.split("@")[0]; const r=await sb.from("profiles").insert({id:me.id,name}).select().single(); p=r.data; }
-  myName=p?p.name:"Я"; $("who").textContent="Вы: "+myName;
+  myName=p?p.name:"Я"; myAv=p?p.avatar_url:null; paintMe();
   await loadPeers(); await loadMsgs();
   sb.channel("m").on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},x=>addMsg(x.new))
     .on("postgres_changes",{event:"UPDATE",schema:"public",table:"messages"},x=>updMsg(x.new))
     .on("postgres_changes",{event:"DELETE",schema:"public",table:"messages"},x=>delMsg(x.old.id)).subscribe();
-  startRT(); $("who").style.cursor="pointer"; $("who").onclick=profile; loadReact();
+  startRT(); $("who").style.cursor="pointer"; $("pf").onclick=profile; loadReact();
   setInterval(()=>{ loadPeers(); pollNew(); loadReact(); },4000);
   $("login").classList.add("off"); renderList();
 }
@@ -287,6 +304,16 @@ function openSheet(id){
 }
 $("sh").onclick=()=>$("sh").classList.remove("on");
 $("q").oninput=renderList;
+let myAv=null;
+function paintMe(){ $("who").textContent=myName; $("myava").innerHTML=ava({id:me.id,name:myName||"?",avatar_url:myAv}); }
+function confirmOut(){
+  const s=$("shm");
+  s.innerHTML=`<div style="padding:10px 14px;max-width:240px;font-weight:600">Вы точно хотите выйти из аккаунта?</div><button data-x="y" class="red"><b>⎋</b>Да, выйти</button><button data-x="c"><b>✕</b>Отмена</button>`;
+  s.onclick=async e=>{ const k=e.target.closest("button"); if(k&&k.dataset.x==="y"){ e.stopPropagation(); await sb.auth.signOut(); location.reload(); } };
+}
+function setTheme(d,save){ document.documentElement.dataset.theme=d?"dark":"light"; $("tg").classList.toggle("dark",d); if(save){ try{ localStorage.setItem("theme",d?"dark":"light"); }catch(e){} } }
+{ let th=null; try{ th=localStorage.getItem("theme"); }catch(e){} setTheme(th?th==="dark":matchMedia("(prefers-color-scheme:dark)").matches); }
+$("tg").onclick=()=>setTheme(document.documentElement.dataset.theme!=="dark",true);
 let rmap={}, rsig="";
 async function loadReact(){
   const {data}=await sb.from("reactions").select("*"); if(!data) return;
@@ -312,16 +339,16 @@ async function sendFile(f,kind){
   catch(e){ toast("Не удалось отправить: "+(e.message||e)); }
 }
 function profile(){
-  const s=$("shm"); s.innerHTML=`<button data-x="n"><b>✏️</b>Сменить имя</button><button data-x="a"><b>🖼</b>Сменить фото</button>`;
+  const s=$("shm"); s.innerHTML=`<button data-x="n"><b>✏️</b>Сменить имя</button><button data-x="a"><b>🖼</b>Сменить фото</button><button data-x="o" class="red"><b>⎋</b>Выйти из аккаунта</button>`;
   s.onclick=e=>{ const k=e.target.closest("button"); if(!k) return;
-    if(k.dataset.x==="n") rename();
+    if(k.dataset.x==="o"){ e.stopPropagation(); confirmOut(); } else if(k.dataset.x==="n") rename();
     else{ const i=document.createElement("input"); i.type="file"; i.accept="image/*";
       i.onchange=async()=>{ if(!i.files[0]) return; try{ toast("Загрузка…"); const url=await upload(await shrink(i.files[0],256),"jpg","image/jpeg");
-        const {error}=await sb.from("profiles").update({avatar_url:url}).eq("id",me.id); if(error) throw error; toast("Фото обновлено"); }catch(x){ toast("Ошибка: "+(x.message||x)); } };
+        const {error}=await sb.from("profiles").update({avatar_url:url}).eq("id",me.id); if(error) throw error; myAv=url; paintMe(); toast("Фото обновлено"); }catch(x){ toast("Ошибка: "+(x.message||x)); } };
       i.click(); } };
   $("sh").classList.add("on");
 }
-async function rename(){ const n=(prompt("Ваше имя:",myName)||"").trim(); if(!n) return; const {error}=await sb.from("profiles").update({name:n}).eq("id",me.id); if(!error){ myName=n; $("who").textContent="Вы: "+n; } }
+async function rename(){ const n=(prompt("Ваше имя:",myName)||"").trim(); if(!n) return; const {error}=await sb.from("profiles").update({name:n}).eq("id",me.id); if(!error){ myName=n; paintMe(); } }
 const dur=s=>Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
 const prev=m=>m.kind==="video"?"🎬 Видео":m.kind==="file"?"📎 "+esc(m.text):m.kind==="image"?"📷 Фото":m.kind==="voice"?"🎤 Голосовое":esc(m.text);
 function toast(t){ const e=$("toast"); e.textContent=t; e.classList.add("on"); clearTimeout(toast.t); toast.t=setTimeout(()=>e.classList.remove("on"),3000); }
