@@ -230,6 +230,15 @@ body{background:var(--sk)}
 mark{background:#ffd54a;color:#111;border-radius:3px;padding:0 1px}
 mark.cur{background:#ffb300;outline:2px solid #fff}
 .item.arch{justify-content:center;gap:10px;font-weight:700;cursor:pointer}
+.sl-out{animation:outL .22s ease-in both}
+.sr-out{animation:outR .22s ease-in both}
+@keyframes outL{to{opacity:0;transform:translateX(-40px)}}
+@keyframes outR{to{opacity:0;transform:translateX(40px)}}
+.sl-in{animation:inL .55s var(--bounce) both}
+.sr-in{animation:inR .55s var(--bounce) both}
+@keyframes inL{from{opacity:0;transform:translateX(70px)}to{opacity:1;transform:none}}
+@keyframes inR{from{opacity:0;transform:translateX(-70px)}to{opacity:1;transform:none}}
+#list.sl-in .item,#list.sr-in .item{animation:pop .5s var(--bounce) both;animation-delay:calc(var(--d,0)*45ms)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -361,7 +370,7 @@ function renderList(){
     return `<div class="item" style="--d:${i}" data-id="${p.id}">${ava(p)}<div class="meta"><div class="row"><span class="name">${pin(p)}${esc(p.name)}${vb(p)}${online.has(p.id)?'<span class="od"></span>':""}</span><span class="time">${l?fmt(l.created_at):""}</span></div><div class="row"><span class="sub">${l?(l.sender===me.id?"Вы: ":"")+prev(l):"Напишите первым"}</span>${u?`<span class="badge">${u}</span>`:""}</div></div></div>`; }).join("")
     :`<div class="empty">Пока здесь никого нет.<br>Отправьте ссылку на мессенджер друзьям: как только они зарегистрируются, появятся в списке.</div>`);
 }
-$("list").onclick=e=>{ const el=e.target.closest(".item"); if(!el) return; if(el.dataset.arch!==undefined){ showArch=el.dataset.arch==="1"; renderList(); return; } openChat(el.dataset.id); };
+$("list").onclick=e=>{ const el=e.target.closest(".item"); if(!el) return; if(el.dataset.arch!==undefined){ goArch(el.dataset.arch==="1"); return; } openChat(el.dataset.id); };
 
 // ----- чат -----
 function openChat(id){
@@ -434,6 +443,13 @@ $("gear").onclick=openSettings;
 // ----- закрепление, архив, очистка, поиск (у каждого свои) -----
 let prefs={}, showArch=false, sq="", sI=0;
 const vis=id=>{ const c=prefs[id]&&prefs[id].cleared_at, a=msgs[id]||[]; return c?a.filter(m=>new Date(m.created_at)>new Date(c)):a; };
+let archBusy=false;
+function goArch(v){
+  if(archBusy||v===showArch) return; archBusy=true; const l=$("list");
+  l.classList.add(v?"sl-out":"sr-out");
+  setTimeout(()=>{ showArch=v; renderList(); l.classList.remove("sl-out","sr-out"); l.classList.add(v?"sl-in":"sr-in");
+    setTimeout(()=>{ l.classList.remove("sl-in","sr-in"); archBusy=false; },550); },220);
+}
 const pin=p=>prefs[p.id]&&prefs[p.id].pinned?"📌 ":"";
 const archRow=n=>showArch?'<div class="item arch" data-arch="0">← Назад к чатам</div>':(n?`<div class="item arch" data-arch="1">📦 Архив <span class="badge">${n}</span></div>`:"");
 async function loadPrefs(){ const {data}=await sb.from("chat_prefs").select("*"); if(!data) return; prefs={}; data.forEach(r=>{ prefs[r.peer_id]=r; }); renderList(); }
