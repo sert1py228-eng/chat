@@ -219,6 +219,7 @@ body{background:var(--sk)}
 .planet{background:radial-gradient(circle at 32% 30%,var(--g1),var(--g2) 55%,#000);box-shadow:0 0 36px var(--glow),inset -12px -10px 22px rgba(0,0,0,.55)}
 .planet:after{border-color:var(--g1);box-shadow:0 0 10px var(--glow)}
 .login input:focus{border-color:var(--g1);box-shadow:0 0 16px var(--glow)}
+.vb{width:1.1em;height:1.1em;vertical-align:-.18em;margin-left:4px;animation:pop .6s var(--bounce) both}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -284,6 +285,7 @@ $("go").onclick=async()=>{
   $("go").disabled=true; $("err").textContent="";
   try{
     if(register){
+      const {data:free}=await sb.rpc("name_free",{n:name}); if(free===false){ $("err").textContent="Этот ник уже занят. Выберите другой"; $("go").disabled=false; return; }
       const {data,error}=await sb.auth.signUp({email,password,options:{data:{name}}});
       if(error) throw error;
       if(!data.session){ $("err").textContent="Подтвердите почту по письму, затем войдите"; setMode(false); }
@@ -302,8 +304,8 @@ $("go").onclick=async()=>{
 async function start(user){
   if(started) return; started=true; me=user;
   let {data:p}=await sb.from("profiles").select("*").eq("id",me.id).maybeSingle();
-  if(!p){ const name=(me.user_metadata&&me.user_metadata.name)||me.email.split("@")[0]; const r=await sb.from("profiles").insert({id:me.id,name}).select().single(); p=r.data; }
-  myName=p?p.name:"Я"; myAv=p?p.avatar_url:null; paintMe();
+  if(!p){ const name=(me.user_metadata&&me.user_metadata.name)||me.email.split("@")[0]; const r=await sb.from("profiles").insert({id:me.id,name}).select().single(); if(r.error){ await sb.auth.signOut(); started=false; $("err").textContent="Этот ник уже занят. Зарегистрируйтесь с другим"; return; } p=r.data; }
+  myName=p?p.name:"Я"; myAv=p?p.avatar_url:null; myVer=!!(p&&p.verified); paintMe();
   await loadPeers(); await loadMsgs();
   sb.channel("m").on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},x=>addMsg(x.new))
     .on("postgres_changes",{event:"UPDATE",schema:"public",table:"messages"},x=>updMsg(x.new))
@@ -344,7 +346,7 @@ function renderList(){
   const last=p=>{ const a=msgs[p.id]; return a&&a[a.length-1]; };
   const sorted=peers.filter(p=>p.name.toLowerCase().includes(flt)).sort((a,b)=>{ const x=last(a),y=last(b); return (y?y.id:0)-(x?x.id:0)||a.name.localeCompare(b.name); });
   $("list").innerHTML=sorted.length?sorted.map((p,i)=>{ const l=last(p),u=unread(p);
-    return `<div class="item" style="--d:${i}" data-id="${p.id}">${ava(p)}<div class="meta"><div class="row"><span class="name">${esc(p.name)}${online.has(p.id)?'<span class="od"></span>':""}</span><span class="time">${l?fmt(l.created_at):""}</span></div><div class="row"><span class="sub">${l?(l.sender===me.id?"Вы: ":"")+prev(l):"Напишите первым"}</span>${u?`<span class="badge">${u}</span>`:""}</div></div></div>`; }).join("")
+    return `<div class="item" style="--d:${i}" data-id="${p.id}">${ava(p)}<div class="meta"><div class="row"><span class="name">${esc(p.name)}${vb(p)}${online.has(p.id)?'<span class="od"></span>':""}</span><span class="time">${l?fmt(l.created_at):""}</span></div><div class="row"><span class="sub">${l?(l.sender===me.id?"Вы: ":"")+prev(l):"Напишите первым"}</span>${u?`<span class="badge">${u}</span>`:""}</div></div></div>`; }).join("")
     :`<div class="empty">Пока здесь никого нет.<br>Отправьте ссылку на мессенджер друзьям: как только они зарегистрируются, появятся в списке.</div>`;
 }
 $("list").onclick=e=>{ const el=e.target.closest(".item"); if(el) openChat(el.dataset.id); };
@@ -352,7 +354,7 @@ $("list").onclick=e=>{ const el=e.target.closest(".item"); if(el) openChat(el.da
 // ----- чат -----
 function openChat(id){
   const p=peers.find(x=>x.id===id); if(!p) return; cur=id; setLR(id);
-  $("chat").innerHTML=`<div class="chead"><button class="ib" id="back" aria-label="Назад">←</button>${ava(p,"width:40px;height:40px;font-size:16px")}<div><strong>${esc(p.name)}</strong><div id="st" style="font-size:12px;opacity:.85"></div></div></div><div class="msgs" id="msgs"></div><div class="rb" id="rb"></div><div class="form"><button class="plus" id="plus" aria-label="Прикрепить"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button><input id="inp" placeholder="Сообщение" autocomplete="off"><button class="cbtn act" id="act" aria-label="Записать или отправить"><svg class="mi" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><svg class="s" viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2-6z"/></svg></button></div>
+  $("chat").innerHTML=`<div class="chead"><button class="ib" id="back" aria-label="Назад">←</button>${ava(p,"width:40px;height:40px;font-size:16px")}<div><strong>${esc(p.name)}</strong>${vb(p)}<div id="st" style="font-size:12px;opacity:.85"></div></div></div><div class="msgs" id="msgs"></div><div class="rb" id="rb"></div><div class="form"><button class="plus" id="plus" aria-label="Прикрепить"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button><input id="inp" placeholder="Сообщение" autocomplete="off"><button class="cbtn act" id="act" aria-label="Записать или отправить"><svg class="mi" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><svg class="s" viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2-6z"/></svg></button></div>
   <div class="rec"><button class="cbtn" id="rx" style="background:var(--bg);color:#ff4d5e" aria-label="Отмена"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button><span class="dot"></span><span class="t" id="rt">0:00</span><div class="eq">${Array.from({length:26},(_,i)=>`<i style="animation-delay:-${(i*0.07).toFixed(2)}s"></i>`).join("")}</div><button class="cbtn" id="rs" aria-label="Отправить"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2-6z"/></svg></button></div>
   <div class="menu" id="menu"><button id="m1"><b>🖼</b>Фото из галереи</button><button id="m2"><b>📷</b>Снять фото</button><button id="m3"><b>🎬</b>Видео</button><button id="m4"><b>📎</b>Файл</button></div>
   <input type="file" accept="image/*" id="f1" hidden><input type="file" accept="image/*" capture="environment" id="f2" hidden><input type="file" accept="video/*" id="f4" hidden><input type="file" id="f5" hidden>`;
@@ -403,7 +405,8 @@ function openSheet(id){
 }
 $("sh").onclick=()=>$("sh").classList.remove("on");
 $("q").oninput=renderList;
-let myAv=null;
+let myAv=null, myVer=false;
+const vb=p=>p&&p.verified?'<svg class="vb" viewBox="0 0 24 24" role="img" aria-label="Подтверждённый аккаунт"><circle cx="12" cy="12" r="10.5" fill="#1d9bf0" stroke="rgba(255,255,255,.9)" stroke-width="1.2"/><path d="M7.4 12.4l3.2 3.2 6-6.4" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>':"";
 const STYLES=[["nebula","Фиолетовый космос","#8b5cff,#22d3ee"],["space-mono","Чёрно-белый космос","#f2f2f7,#7d8294"],["blood","Кроваво-красный космос","#ff3355,#a3122f"],["toxic","Зелёно-салатовый космос","#b6ff3c,#19e68c"],["mono","Монотонный чёрно-белый","#ffffff,#555555"]];
 function setStyle(n,save){ document.documentElement.dataset.style=n; if(save){ try{ localStorage.setItem("style",n); }catch(e){} } }
 { let st=null; try{ st=localStorage.getItem("style"); }catch(e){} setStyle(STYLES.some(x=>x[0]===st)?st:"nebula"); }
@@ -435,7 +438,7 @@ if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("messa
 (function(){ const sk=document.querySelector(".sky");
   for(let i=0;i<45;i++){ const e=document.createElement("u"), z=Math.random()*2+1; e.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;width:${z}px;height:${z}px;animation-delay:-${Math.random()*6}s;animation-duration:${3+Math.random()*4}s`; sk.appendChild(e); }
   for(let i=0;i<3;i++){ const m=document.createElement("em"); m.style.cssText=`top:${Math.random()*40}%;left:${50+Math.random()*50}%;animation-delay:${i*5+Math.random()*4}s`; sk.appendChild(m); } })();
-function paintMe(){ $("who").textContent=myName; $("myava").innerHTML=ava({id:me.id,name:myName||"?",avatar_url:myAv}); }
+function paintMe(){ $("who").innerHTML=esc(myName)+vb({verified:myVer}); $("myava").innerHTML=ava({id:me.id,name:myName||"?",avatar_url:myAv}); }
 function confirmOut(){
   const s=$("shm");
   s.innerHTML=`<div style="padding:10px 14px;max-width:240px;font-weight:600">Вы точно хотите выйти из аккаунта?</div><button data-x="y" class="red"><b>⎋</b>Да, выйти</button><button data-x="c"><b>✕</b>Отмена</button>`;
@@ -478,7 +481,7 @@ function profile(){
       i.click(); } };
   $("sh").classList.add("on");
 }
-async function rename(){ const n=(prompt("Ваше имя:",myName)||"").trim(); if(!n) return; const {error}=await sb.from("profiles").update({name:n}).eq("id",me.id); if(!error){ myName=n; paintMe(); } }
+async function rename(){ const n=(prompt("Ваше имя:",myName)||"").trim(); if(!n) return; const {error}=await sb.from("profiles").update({name:n}).eq("id",me.id); if(!error){ myName=n; paintMe(); } else toast(error.code==="23505"?"Этот ник уже занят":"Не удалось сменить имя"); }
 const dur=s=>Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
 const prev=m=>m.kind==="video"?"🎬 Видео":m.kind==="file"?"📎 "+esc(m.text):m.kind==="image"?"📷 Фото":m.kind==="voice"?"🎤 Голосовое":esc(m.text);
 function toast(t){ const e=$("toast"); e.textContent=t; e.classList.add("on"); clearTimeout(toast.t); toast.t=setTimeout(()=>e.classList.remove("on"),3000); }
