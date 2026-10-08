@@ -336,6 +336,8 @@ async function start(user){
     .on("postgres_changes",{event:"UPDATE",schema:"public",table:"messages"},x=>updMsg(x.new))
     .on("postgres_changes",{event:"DELETE",schema:"public",table:"messages"},x=>delMsg(x.old.id)).subscribe();
   startRT(); $("who").style.cursor="pointer"; $("pf").onclick=profile; loadReact();
+  touchSeen(); setInterval(()=>{ if(!document.hidden) touchSeen(); },60000);
+  document.addEventListener("visibilitychange",()=>{ lsT=0; touchSeen(); }); window.addEventListener("pagehide",()=>{ lsT=0; touchSeen(); });
   setInterval(()=>{ loadPeers(); pollNew(); loadReact(); },4000);
   $("login").classList.add("off"); renderList(); setTimeout(()=>$("list").classList.remove("fresh"),1200);
   const c0=new URLSearchParams(location.search).get("chat"); if(c0) openChat(c0);
@@ -343,7 +345,7 @@ async function start(user){
 }
 async function loadPeers(){
   const {data}=await sb.from("profiles").select("*").in("id",[...new Set([...Object.keys(msgs),...extra])]);
-  if(data){ const sg=JSON.stringify(data); if(sg!==window.psig){ window.psig=sg; peers=data; if(!cur) renderList(); } }
+  if(data){ const sg=JSON.stringify(data); if(sg!==window.psig){ window.psig=sg; peers=data; hdr(); if(!cur) renderList(); } }
 }
 async function loadMsgs(){
   const {data}=await sb.from("messages").select("*").order("id");
@@ -416,7 +418,7 @@ function startRT(){
     .on("broadcast",{event:"typing"},({payload:p})=>{ if(p.to===me.id){ tFrom=p.from; clearTimeout(tT); tT=setTimeout(()=>{ tFrom=null; hdr(); },2500); hdr(); } })
     .subscribe(s=>{ if(s==="SUBSCRIBED") ch.track({at:Date.now()}); });
 }
-function hdr(){ const e=$("st"); if(e&&cur) e.textContent=tFrom===cur?"печатает…":online.has(cur)?"в сети":"не в сети"; }
+function hdr(){ const e=$("st"); if(e&&cur) e.textContent=tFrom===cur?"печатает…":online.has(cur)?"в сети":lastSeen(peers.find(x=>x.id===cur)); }
 function markRead(p){
   (msgs[p]||[]).forEach(m=>{ if(m.sender===p) m.read=true; }); renderList();
   sb.from("messages").update({read:true}).eq("sender",p).eq("receiver",me.id).eq("read",false).then(()=>{});
@@ -450,6 +452,16 @@ function openSettings(){
 $("gear").onclick=openSettings;
 
 // ----- закрепление, архив, очистка, поиск (у каждого свои) -----
+let lsT=0;
+function touchSeen(){ if(!me||Date.now()-lsT<30000) return; lsT=Date.now(); sb.from("profiles").update({last_seen:new Date().toISOString()}).eq("id",me.id).then(()=>{}); }
+function lastSeen(p){
+  if(!p||!p.last_seen) return "был(а) в сети давно";
+  const d=new Date(p.last_seen), day=x=>new Date(x.getFullYear(),x.getMonth(),x.getDate()), diff=Math.round((day(new Date())-day(d))/864e5);
+  if(diff<=0) return "был(а) в сети сегодня в "+d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
+  if(diff===1) return "был(а) в сети вчера";
+  if(diff<7) return "был(а) в сети "+["в воскресенье","в понедельник","во вторник","в среду","в четверг","в пятницу","в субботу"][d.getDay()];
+  return "был(а) в сети давно";
+}
 let prefs={}, showArch=false, sq="", sI=0, blk=new Set(), found=[], extra=new Set(), qT=null;
 const EM=Array.from("😀😁😂🤣😊😍😘😎🤔😅😭😡👍👎🙏👏🔥💙💔🎉✨💯😴🤝👀😇🥳😱🤯😢🙌💪🌟");
 const dd=(a,m)=>{ const d=new Date(m.created_at); if(a&&new Date(a.created_at).toDateString()===d.toDateString()) return ""; const y=new Date(Date.now()-864e5);
